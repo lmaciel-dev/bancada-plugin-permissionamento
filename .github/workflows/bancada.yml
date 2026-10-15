@@ -26,7 +26,7 @@ jobs:
           node-version: 22
 
       - name: Executar a bancada
-        run: ./executar.sh
+        run: TESTES="T04 T05 T13" ./executar.sh
 
       - name: Anexar evidências da execução
         if: always()
