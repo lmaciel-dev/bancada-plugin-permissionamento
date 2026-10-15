@@ -6,6 +6,7 @@ name: Bancada
 # Disparo somente manual: aba Actions → Bancada → Run workflow (ou gh workflow run bancada.yml --ref main).
 on:
   workflow_dispatch:
+  push: # neste fork: workflow_dispatch desabilitado por padrão; push dispara a execução
 
 permissions:
   contents: read
