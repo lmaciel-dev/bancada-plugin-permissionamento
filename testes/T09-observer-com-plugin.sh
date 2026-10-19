@@ -53,6 +53,7 @@ rbbcli config render-templates
 cat >> "$SN/docker-compose.override.yml" <<EOF2
   observador:
     image: ${BESU_IMAGEM_PLUGIN}
+$(yaml_opcoes_migracao)
     volumes:
       - ${TRAB}/plugin/besu-plugin-permissioning.jar:/opt/besu/plugins/besu-plugin-permissioning.jar:ro
 EOF2

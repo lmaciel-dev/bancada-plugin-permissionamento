@@ -52,8 +52,28 @@ verificar P-01 "SHA-256 do jar do plugin confere com o fixado em versoes.env" "$
 fato plugin.versao "$PLUGIN_VERSAO"
 fato plugin.url "$PLUGIN_URL"
 fato plugin.sha256 "$SHA_OBTIDO"
+
+passo "Besu ${BESU_VERSAO_PLUGIN} dos nós com plugin (matriz de versoes.env)"
+fato besu.versao_plugin "$BESU_VERSAO_PLUGIN"
 executar "baixar imagem do Besu do nó com plugin" docker pull -q "$BESU_IMAGEM_PLUGIN"
 fato imagem.besu_plugin "$BESU_IMAGEM_PLUGIN"
+# A versão informada pelo binário é a que os testes comparam com web3_clientVersion (T-05a, T-11, T-12).
+# Conferida aqui, antes da rede: uma linha da matriz errada vira aborto claro, não falhas espalhadas.
+CLIENTE_OBTIDO=$(docker run --rm "$BESU_IMAGEM_PLUGIN" --version 2>/dev/null | grep -o '^besu/v[^/]*' | head -1)
+verificar P-02 "versão informada pela imagem do Besu do nó com plugin confere com a matriz" "besu/v${BESU_CLIENTE_PLUGIN}" "$CLIENTE_OBTIDO"
+[ "$CLIENTE_OBTIDO" = "besu/v${BESU_CLIENTE_PLUGIN}" ] || abortar "imagem do Besu ${BESU_VERSAO_PLUGIN} informa versão diferente da registrada na matriz"
+fato besu.versao_informada_plugin "${CLIENTE_OBTIDO#besu/}"
+[ "$BESU_CLIENTE_PLUGIN" != "$BESU_VERSAO_PLUGIN" ] \
+  && info "a imagem do Besu ${BESU_VERSAO_PLUGIN} informa a versão ${BESU_CLIENTE_PLUGIN} (registrado na matriz de versoes.env)"
+if [ -n "$BESU_OPCOES_MIGRACAO" ]; then
+  # Opções que a versão exige nos nós atualizados enquanto a rede tem nós 25.x (ver versoes.env).
+  # A imagem as interpreta ao iniciar: valor inválido ou opção desconhecida faz o Besu recusar.
+  fato besu.opcoes_migracao "$BESU_OPCOES_MIGRACAO"
+  ENV_OPCOES=(); IFS=',' read -ra _ops <<<"$BESU_OPCOES_MIGRACAO"; for o in "${_ops[@]}"; do ENV_OPCOES+=(-e "$o"); done
+  OPCOES_OBTIDO=$(docker run --rm "${ENV_OPCOES[@]}" "$BESU_IMAGEM_PLUGIN" --version 2>&1 | grep -o '^besu/v[^/]*' | head -1)
+  verificar P-03 "imagem do Besu do nó com plugin aceita as opções de migração da matriz" "besu/v${BESU_CLIENTE_PLUGIN}" "$OPCOES_OBTIDO"
+  [ "$OPCOES_OBTIDO" = "besu/v${BESU_CLIENTE_PLUGIN}" ] || abortar "imagem do Besu ${BESU_VERSAO_PLUGIN} recusou as opções de migração da matriz"
+fi
 
 passo "Dependências Node.js"
 em "$TRAB/Permissionamento/gen01" executar "gen01: yarn install (yarn.lock do repositório)" \

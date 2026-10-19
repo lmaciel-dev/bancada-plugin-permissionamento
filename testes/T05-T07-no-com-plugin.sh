@@ -43,6 +43,7 @@ cat > "$SN/docker-compose.override.yml" <<EOF
 services:
   novo:
     image: ${BESU_IMAGEM_PLUGIN}
+$(yaml_opcoes_migracao)
     volumes:
       - ${TRAB}/plugin/besu-plugin-permissioning.jar:/opt/besu/plugins/besu-plugin-permissioning.jar:ro
     ports:
@@ -60,7 +61,7 @@ estado E4 "rede mista: 'novo' no Besu ${BESU_VERSAO_PLUGIN} com o plugin; valida
 
 sleep 3
 CONSOLE_NOVO=$(cd "$SN" && docker compose logs novo 2>/dev/null)   # lido uma vez (grep -q numa pipeline com pipefail dá falso negativo)
-verificar T-05a "versão do Besu no nó novo após a migração" "besu/v${BESU_VERSAO_PLUGIN}" \
+verificar T-05a "versão do Besu no nó novo após a migração" "besu/v${BESU_CLIENTE_PLUGIN}" \
   "$(rpc "$PORTA_NOVO" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
 verificar_que T-05b "bloco do nó novo preservado (banco reaproveitado, sem sincronizar do zero)" \
   "bloco inicial ≥ $B_ANTES" "$(bloco_atual "$PORTA_NOVO")" test "$(bloco_atual "$PORTA_NOVO")" -ge "$B_ANTES"

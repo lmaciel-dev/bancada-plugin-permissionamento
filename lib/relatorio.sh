@@ -10,7 +10,8 @@ total=$(jq -s '[.[] | select(.observacao != true)] | length' "$V")
 ok=$(jq -s '[.[] | select(.observacao != true and .ok)] | length' "$V")
 abortos=$(jq -r 'select(.tipo=="aborto") | .motivo' "$F")
 
-echo "# Bancada do plugin de permissionamento: execução $(basename "$D")"
+besu=$(fatov besu.versao_plugin)
+echo "# Bancada do plugin de permissionamento: execução $(basename "$D")${besu:+ (Besu $besu nos nós com plugin)}"
 echo
 if [ -n "$abortos" ]; then
   echo "**❌ EXECUÇÃO ABORTADA:** $abortos"
@@ -24,7 +25,7 @@ echo "## Ambiente"
 echo
 echo "| Item | Valor |"
 echo "|---|---|"
-for k in execucao.filtro_de_testes bancada.commit bancada.alteracoes_locais ambiente.executor ambiente.sistema ambiente.arquitetura ambiente.docker ambiente.docker_compose ambiente.node imagem.besu_inicial imagem.besu_plugin plugin.versao plugin.sha256 imagem.rbb_cli repositorio.start-network repositorio.Permissionamento repositorio.scripts-permissionamento dependencia.gen02_openzeppelin; do
+for k in execucao.filtro_de_testes bancada.commit bancada.alteracoes_locais ambiente.executor ambiente.sistema ambiente.arquitetura ambiente.docker ambiente.docker_compose ambiente.node imagem.besu_inicial besu.versao_plugin besu.versao_informada_plugin besu.opcoes_migracao imagem.besu_plugin plugin.versao plugin.sha256 imagem.rbb_cli repositorio.start-network repositorio.Permissionamento repositorio.scripts-permissionamento dependencia.gen02_openzeppelin; do
   v=$(fatov "$k"); [ -n "$v" ] && echo "| $k | \`$(echo "$v" | md)\` |"
 done
 echo
@@ -57,7 +58,7 @@ echo "## Fatos registrados (endereços, blocos, chaves públicas)"
 echo
 echo "| Chave | Valor |"
 echo "|---|---|"
-jq -r 'select(.tipo=="fato") | "| \(.chave) | `\(.valor)` |"' "$F" | grep -v -E '\| (ambiente|imagem|repositorio|bancada|dependencia|plugin)\.'
+jq -r 'select(.tipo=="fato") | "| \(.chave) | `\(.valor)` |"' "$F" | grep -v -E '\| (ambiente|imagem|repositorio|bancada|dependencia|plugin|besu)\.'
 echo
 echo "## Arquivos desta execução"
 echo

@@ -80,6 +80,7 @@ migrar_validador() {  # migrar_validador <nome> <índice>
   cat >> "$SN/docker-compose.override.yml" <<EOF
   $v:
     image: ${BESU_IMAGEM_PLUGIN}
+$(yaml_opcoes_migracao)
     volumes:
       - ${TRAB}/plugin/besu-plugin-permissioning.jar:/opt/besu/plugins/besu-plugin-permissioning.jar:ro
 EOF
@@ -89,7 +90,7 @@ EOF
   esperar_ate "RPC de $v" 180 responde "$p" || abortar "$v não respondeu após a migração"
   estado "E9.$i" "$i de 4 validadores no Besu ${BESU_VERSAO_PLUGIN} com o plugin (último migrado: $v)"
   ESTADO_ATUAL="E9.$i"
-  verificar "T-11.$i-a" "versão do Besu no validador '$v'" "besu/v${BESU_VERSAO_PLUGIN}" "$(rpc "$p" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
+  verificar "T-11.$i-a" "versão do Besu no validador '$v'" "besu/v${BESU_CLIENTE_PLUGIN}" "$(rpc "$p" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
   esperar_ate "$v sincronizar" 180 acompanha "$PORTA_BOOT" "$p" || true
   local bm; bm=$(bloco_atual "$PORTA_BOOT")
   esperar_ate "rede produzir 3 blocos após a migração" 90 bash -c "b=\$(curl -s -X POST -H 'content-type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' localhost:$PORTA_BOOT | jq -r .result); [ \$((b)) -ge $((bm + 3)) ]" || true

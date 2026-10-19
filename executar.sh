@@ -5,6 +5,7 @@
 #
 # Uso: ./executar.sh
 #   MANTER_REDE=1 ./executar.sh    mantém a rede de pé ao final (para inspeção manual)
+#   BESU_VERSAO_PLUGIN=26.10.0 ./executar.sh   nós com plugin noutra versão da matriz (versoes.env)
 #
 # Código de saída: 0 = todas as verificações passaram; 1 = alguma falhou; 2 = execução abortada.
 
@@ -12,6 +13,7 @@ set -u
 RAIZ="$(cd "$(dirname "$0")" && pwd)"
 source "$RAIZ/versoes.env"
 source "$RAIZ/lib/comum.sh"
+source "$RAIZ/lib/matriz-besu.sh"
 
 EXEC_ID="$(date -u '+%Y%m%d-%H%M%S')"
 EXEC_DIR="$RAIZ/execucoes/$EXEC_ID"
@@ -73,7 +75,9 @@ finalizar() {
 }
 trap finalizar EXIT
 
-echo "Bancada do plugin de permissionamento da RBB — execução $EXEC_ID"
+echo "Bancada do plugin de permissionamento da RBB — execução $EXEC_ID (nós com plugin no Besu $BESU_VERSAO_PLUGIN)"
+matriz_resolver "$BESU_VERSAO_PLUGIN" \
+  || abortar "Besu $BESU_VERSAO_PLUGIN fora da matriz de versoes.env (disponíveis: $(matriz_versoes | tr '\n' ' '))"
 FASES="fases/00-preparar.sh fases/01-rede-e0.sh fases/02-gen01-e1.sh fases/03-gen02-e2.sh"
 TODOS_TESTES="testes/T01-T02-linha-de-base.sh testes/T03-caminhos-nativo-plugin.sh testes/T04-permissionamento-no.sh
   testes/T05-T07-no-com-plugin.sh testes/T08-no-entrante-com-plugin.sh testes/T09-observer-com-plugin.sh

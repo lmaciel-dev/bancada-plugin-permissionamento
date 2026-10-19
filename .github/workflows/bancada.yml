@@ -1,11 +1,24 @@
 name: Bancada
 
-# Execução completa da bancada numa máquina limpa do GitHub. O log de cada passo fica nesta
-# página, o resumo aparece no topo da execução e todos os arquivos de evidência (logs dos nós,
-# verificações, transações, comandos) ficam anexados como artefato.
-# Disparo somente manual: aba Actions → Bancada → Run workflow (ou gh workflow run bancada.yml --ref main).
+# Execução completa da bancada em máquinas limpas do GitHub, uma vez para cada versão do Besu da
+# matriz de versoes.env (um job por versão, em paralelo). O log de cada passo fica nesta página, o
+# resumo de cada versão e o consolidado da matriz aparecem no topo da execução e todos os arquivos
+# de evidência (logs dos nós, verificações, transações, comandos) ficam anexados como artefatos.
+# Disparo manual: aba Actions → Bancada → Run workflow (ou gh workflow run bancada.yml --ref main),
+# opcionalmente escolhendo as versões do Besu e um filtro de testes.
 on:
   workflow_dispatch:
+    inputs:
+      versoes_besu:
+        description: "Versões do Besu dos nós com plugin, separadas por espaço (vazio = toda a matriz de versoes.env)"
+        required: false
+        default: ""
+      testes:
+        description: "Filtro de testes, ex.: T04 T05 (vazio = todos; execuções oficiais rodam todos)"
+        required: false
+        default: ""
+  # Em forks o workflow_dispatch vem desabilitado; lá a bancada roda a cada push (ver o `if` abaixo).
+  push:
 
 permissions:
   contents: read
@@ -15,9 +28,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  matriz:
+    name: Matriz de versões
+    # No repositório da RBBNet, só disparo manual; em forks, também por push.
+    if: github.event_name == 'workflow_dispatch' || github.repository != 'RBBNet/bancada-plugin-permissionamento'
+    runs-on: ubuntu-latest
+    outputs:
+      versoes: ${{ steps.matriz.outputs.versoes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ler a matriz de versoes.env
+        id: matriz
+        env:
+          VERSOES_PEDIDAS: ${{ inputs.versoes_besu }}
+        run: |
+          VERSOES=$(lib/matriz-besu.sh json "$VERSOES_PEDIDAS")
+          echo "versoes=$VERSOES" >> "$GITHUB_OUTPUT"
+          echo "Versões do Besu nesta execução: \`$VERSOES\`" >> "$GITHUB_STEP_SUMMARY"
+
   bancada:
+    name: Besu ${{ matrix.besu }}
+    needs: matriz
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    strategy:
+      fail-fast: false   # uma versão com falha não interrompe as outras
+      matrix:
+        besu: ${{ fromJSON(needs.matriz.outputs.versoes) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,15 +64,50 @@ jobs:
           node-version: 22
 
       - name: Executar a bancada
+        env:
+          BESU_VERSAO_PLUGIN: ${{ matrix.besu }}
+          TESTES: ${{ inputs.testes }}
         run: ./executar.sh
 
       - name: Anexar evidências da execução
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: evidencias-${{ github.run_number }}-${{ github.sha }}
+          name: evidencias-besu-${{ matrix.besu }}-${{ github.run_number }}-${{ github.sha }}
           path: |
             execucoes/*/
             !execucoes/*/trabalho/
           retention-days: 90
           if-no-files-found: warn
+
+  consolidado:
+    name: Consolidado da matriz
+    needs: [matriz, bancada]
+    if: always() && needs.matriz.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: evidencias-besu-*-${{ github.run_number }}-${{ github.sha }}
+          path: artefatos
+
+      - name: Consolidar os resultados das versões
+        env:
+          VERSOES_ESPERADAS: ${{ join(fromJSON(needs.matriz.outputs.versoes), ' ') }}
+        run: |
+          mkdir -p artefatos
+          set +e
+          bash lib/consolidar.sh artefatos > consolidado.md
+          rc=$?
+          cat consolidado.md >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
+      - name: Anexar o consolidado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidado-${{ github.run_number }}-${{ github.sha }}
+          path: consolidado.md
+          retention-days: 90

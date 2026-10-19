@@ -25,6 +25,7 @@ migrar_no() {  # migrar_no <nome> <porta> — Besu ${BESU_VERSAO_PLUGIN} + plugi
   cat >> "$SN/docker-compose.override.yml" <<EOF
   $n:
     image: ${BESU_IMAGEM_PLUGIN}
+$(yaml_opcoes_migracao)
     volumes:
       - ${TRAB}/plugin/besu-plugin-permissioning.jar:/opt/besu/plugins/besu-plugin-permissioning.jar:ro
 EOF
@@ -41,7 +42,7 @@ conta_boot() { log_boot_depois | grep -c "$1" || true; }
 migrar_no boot "$PORTA_BOOT"
 estado E10 "boot no Besu ${BESU_VERSAO_PLUGIN} com o plugin (além dos validadores já migrados)"
 ESTADO_ATUAL="E10"
-verificar T-12a "versão do Besu no boot" "besu/v${BESU_VERSAO_PLUGIN}" "$(rpc "$PORTA_BOOT" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
+verificar T-12a "versão do Besu no boot" "besu/v${BESU_CLIENTE_PLUGIN}" "$(rpc "$PORTA_BOOT" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
 esperar_ate "boot sincronizar" 180 acompanha "$PORTA_VALIDATOR" "$PORTA_BOOT" || true
 esperar_ate "writer reconectar ao boot" 180 tem_pares "$PORTA_WRITER" 1 || true
 esperar_ate "writer acompanhar a cadeia" 120 acompanha "$PORTA_VALIDATOR" "$PORTA_WRITER" || true
@@ -103,7 +104,7 @@ for n in $(cd "$SN" && docker compose ps --services --status running); do
   p=$(cd "$SN" && docker compose port "$n" 8545 2>/dev/null | cut -d: -f2)
   [ -z "$p" ] && continue
   v=$(rpc "$p" web3_clientVersion | jq -r .result | cut -d/ -f2)
-  VERSOES="$VERSOES $n=$v"; [ "$v" != "v${BESU_VERSAO_PLUGIN}" ] && nativos=$((nativos + 1))
+  VERSOES="$VERSOES $n=$v"; [ "$v" != "v${BESU_CLIENTE_PLUGIN}" ] && nativos=$((nativos + 1))
 done
 fato t12.versoes_dos_nos_em_execucao "$VERSOES"
 verificar T-12i "nenhum nó em execução fora do Besu ${BESU_VERSAO_PLUGIN} (rede inteira no plugin)" "0" "$nativos" "{\"versoes\":\"$VERSOES\"}"
