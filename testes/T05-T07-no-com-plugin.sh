@@ -113,15 +113,15 @@ verificar T-07 "transação de conta não cadastrada, enviada pelo nó com plugi
   'RECUSADA: -32007 Sender account not authorized to send transactions' \
   "$(jq -r .resumo <<<"$R")" "$R"
 
-passo "Métricas do plugin (o release v1.0.0-rc.1 documenta besu_permissioning_transactions_total_checked etc.)"
+passo "Métricas do plugin (nomes da PR RBBNet/besu-permissioning-plugin#6: prefixo besu_ e nomes estáveis)"
 METRICAS=$(curl -s -m 10 "localhost:${PORTA_METRICAS_NOVO}/metrics" | grep -i "permissioning" | grep -v '^#')
 sed 's/^/    │ /' <<<"$METRICAS" | head -8
 NOMES=$(cut -d'{' -f1 <<<"$METRICAS" | cut -d' ' -f1 | sort -u | tr '\n' ' ')
-observar T-07m "nomes das métricas de permissionamento" \
-  "besu_permissioning_transactions_total_checked (e demais nomes do release)" \
-  "$(grep -q '^besu_permissioning_transactions_total_checked' <<<"$METRICAS" && echo "besu_permissioning_transactions_total_checked (e demais nomes do release)" || echo "${NOMES:-nenhuma métrica com 'permissioning'}")"
-metrica() { grep "^[a-z_]*$1 " <<<"$METRICAS" | awk '{print int($2)}' | head -1; }
-NEG=$(metrica onchain_transaction_check_count_denied_total); PER=$(metrica onchain_transaction_check_count_permitted_total)
+METRICAS_PR6="besu_permissioning_nodes_checked_total besu_permissioning_nodes_denied_total besu_permissioning_nodes_permitted_total besu_permissioning_transactions_checked_total besu_permissioning_transactions_denied_total besu_permissioning_transactions_permitted_total"
+verificar T-07m "nomes das métricas de permissionamento: os 6 contadores da PR #6, nenhum com o prefixo antigo (besupermissioning_)" \
+  "$METRICAS_PR6" "$(echo $NOMES)"
+metrica() { grep "^besu_permissioning_$1 " <<<"$METRICAS" | awk '{print int($2)}' | head -1; }
+NEG=$(metrica transactions_denied_total); PER=$(metrica transactions_permitted_total)
 verificar_que T-07n "contadores do plugin refletem os testes: 1 recusa (T-07) e ≥ 2 permissões (T-06 no pool + na importação do bloco)" \
   "recusadas = 1, permitidas ≥ 2" "recusadas = ${NEG:-?}, permitidas = ${PER:-?}" \
   test "${NEG:-0}" -eq 1 -a "${PER:-0}" -ge 2
