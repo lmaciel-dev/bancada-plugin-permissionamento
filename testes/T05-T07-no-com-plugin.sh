@@ -88,8 +88,10 @@ verificar_que T-05h "nó novo (plugin) sincronizado com o validator" "diferença
 info "log de permissionamento do nó novo, só linhas escritas após a migração (plugin): regras e decisão sobre o boot"
 perm_depois | grep -E "Resolved (AccountRules|NodeRules)|enode://$K_BOOT" \
   | grep -v Checking | head -4 | cut -c1-240 | sed 's/^/    │ /'
-verificar T-05i "plugin resolveu o NodeRules do gen02 pelo Ingress" "$(minusculo "$(jq -r 'select(.chave=="gen02.node_rules_v2") | .valor' "$EXEC_DIR/fatos.jsonl" | tail -1)")" \
-  "$(minusculo "$(perm_depois | grep -o 'Resolved NodeRules contract address: 0x[0-9a-fA-F]*' | tail -1 | grep -o '0x.*')")"
+# PR RBBNet/besu-permissioning-plugin#5: o plugin consulta o Ingress diretamente (como o permissionamento
+# nativo) e deixa de resolver o endereço do Rules; a linha "Resolved NodeRules" não existe mais.
+verificar T-05i "plugin consulta o Ingress diretamente, sem resolver o endereço do Rules (PR #5)" \
+  "0 linhas 'Resolved (AccountRules|NodeRules)'" "$(perm_depois | grep -c -E 'Resolved (AccountRules|NodeRules)' || true) linhas 'Resolved (AccountRules|NodeRules)'"
 verificar T-05j "após a migração, o permissionamento do nó novo permitiu a conexão com o boot" "sim" \
   "$(perm_depois | grep -c "Permitted enode://$K_NOVO.*-> enode://$K_BOOT\|Permitted enode://$K_BOOT.*-> enode://$K_NOVO" | grep -q '^[1-9]' && echo sim || echo não)"
 

@@ -16,7 +16,7 @@ PORTA_NOVO=${PORTA_NOVO:-20004}
 REF_DEFEITO="plugin ${PLUGIN_VERSAO}: configuração obrigatória ausente não impede a subida e bloqueia a importação de blocos${ISSUE_PLUGIN_CONFIG_AUSENTE:+ — $ISSUE_PLUGIN_CONFIG_AUSENTE}"
 dc_t10() { docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.t10.yml "$@"; }
 
-passo "Liberar memória: parar o observador do T-09 (já parado no bloco da 1ª transação)"
+passo "Liberar memória: parar o observador do T-09 (já cumpriu seu papel)"
 em "$SN" executar "parar observador" docker compose stop observador
 
 passo "Reconfigurar o nó 'novo' SEM o endereço do Ingress de contas (variável vazia)"

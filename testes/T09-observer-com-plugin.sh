@@ -12,15 +12,12 @@
 #
 # Especificação (o que deveria acontecer): conecta e baixa a cadeia inteira.
 #
-# DEMONSTRAÇÃO PERMANENTE DE DEFEITO do plugin (confirmado em 30/09/2026 com a v1.0.0-rc.1): o nó
-# conecta pela exceção de bootnode, importa os blocos até o anterior à 1ª transação e, ao importar o
-# bloco da 1ª transação, o plugin resolve AccountRules = 0 no estado do bloco anterior ("Could not
-# resolve AccountRules contract address. Rejecting transaction."); o Besu declara o bloco inválido
-# ("Sender ... is not on the Account Allowlist"), desconecta o par por BREACH_OF_PROTOCOL e a
-# sincronização para. Os itens 🐞 esperam esse comportamento defeituoso.
+# Na branch teste-pr5, os itens que eram 🐞 (defeito do v1.0.0-rc.1) esperam a ESPECIFICAÇÃO: o jar
+# da PR RBBNet/besu-permissioning-plugin#5 consulta o AccountIngress diretamente, que sem Rules permite a
+# transação (como no permissionamento nativo). O observador importa o bloco da 1ª transação e acompanha
+# o validator.
 
-fase "Teste T-09: nó com plugin entrando como observer (bootnode) não baixa a cadeia (🐞 demonstração de defeito do plugin ${PLUGIN_VERSAO})"
-REF_DEFEITO="plugin ${PLUGIN_VERSAO}: AccountRules não resolvido no estado anterior às regras${ISSUE_PLUGIN_NODERULES_GENESIS:+ — $ISSUE_PLUGIN_NODERULES_GENESIS}"
+fase "Teste T-09: nó com plugin entrando como observer (bootnode) baixa a cadeia (especificação, plugin ${PLUGIN_VERSAO})"
 ESTADO_ATUAL="E5"
 SN="$TRAB/start-network"
 SP="$TRAB/scripts-permissionamento"
@@ -73,7 +70,7 @@ em "$SN" executar "subir observador" docker compose up -d observador
 esperar_ate "RPC do observador" 180 responde "$PORTA_OBS" || abortar "observador não respondeu"
 cheguei_bloco() { local b; b=$(bloco_atual "$PORTA_OBS"); [ -n "$b" ] && [ "$b" -ge "$1" ]; }
 esperar_ate "observador importar blocos até o anterior à 1ª transação ($((PRIMEIRO_TX - 1)))" 180 cheguei_bloco $((PRIMEIRO_TX - 1)) || true
-esperar_ate "observador sincronizar (especificação)" 120 acompanha "$PORTA_VALIDATOR" "$PORTA_OBS" || true
+esperar_ate "observador sincronizar" 180 acompanha "$PORTA_VALIDATOR" "$PORTA_OBS" || true
 BV=$(bloco_atual "$PORTA_VALIDATOR"); BO=$(bloco_atual "$PORTA_OBS")
 fato t09.bloco_validator "$BV"
 fato t09.bloco_observador "$BO"
@@ -93,14 +90,13 @@ verificar_que T-09b "observador conectou ao boot pela exceção de bootnode ('In
   "≥ 1 linha 'Insufficient Peers: Permitted' e bloco > 0" \
   "$(grep -c 'Insufficient Peers: Permitted' "$LOG_PERM_OBS" 2>/dev/null || true) linha(s); bloco ${BO:-?}" \
   test "$(grep -c 'Insufficient Peers: Permitted' "$LOG_PERM_OBS" 2>/dev/null || true)" -ge 1 -a "${BO:-0}" -gt 0
-reproduzir_defeito "$REF_DEFEITO" T-09c "observador PARA no bloco anterior à 1ª transação da cadeia (especificação: acompanhar o validator, hoje no $BV)" \
-  "$((PRIMEIRO_TX - 1))" "${BO:-?}"
-reproduzir_defeito_que "$REF_DEFEITO" T-09d "plugin recusa a 1ª transação da cadeia ao importar o bloco $PRIMEIRO_TX (AccountRules = 0 no estado anterior)" \
-  "≥ 1 'Could not resolve AccountRules' no log do plugin e 'Invalid block $PRIMEIRO_TX' com 'Sender $ADMIN is not on the Account Allowlist'" \
-  "$(grep -c 'Could not resolve AccountRules contract address' "$LOG_PERM_OBS" 2>/dev/null || true) 'Could not resolve AccountRules'; $(grep -c "Invalid block $PRIMEIRO_TX .*Sender $ADMIN is not on the Account Allowlist" <<<"$CONSOLE_OBS" || true) 'Invalid block $PRIMEIRO_TX … not on the Account Allowlist'" \
-  test "$(grep -c 'Could not resolve AccountRules contract address' "$LOG_PERM_OBS" 2>/dev/null || true)" -ge 1 \
-    -a "$(grep -c "Invalid block $PRIMEIRO_TX .*Sender $ADMIN is not on the Account Allowlist" <<<"$CONSOLE_OBS" || true)" -ge 1
-reproduzir_defeito_que "$REF_DEFEITO" T-09e "Besu desconecta o par que enviou o bloco, por quebra de protocolo" \
-  "≥ 1 'Invalid block detected (BREACH_OF_PROTOCOL). Disconnecting from sync target'" \
-  "$(grep -c 'BREACH_OF_PROTOCOL). Disconnecting from sync target' <<<"$CONSOLE_OBS" || true) linha(s)" \
-  test "$(grep -c 'BREACH_OF_PROTOCOL). Disconnecting from sync target' <<<"$CONSOLE_OBS" || true)" -ge 1
+verificar_que T-09c "observador passa do bloco da 1ª transação da cadeia ($PRIMEIRO_TX) e acompanha o validator" \
+  "diferença ≤ 1 bloco" "validator $BV, observador ${BO:-?}" acompanha "$PORTA_VALIDATOR" "$PORTA_OBS"
+verificar_que T-09d "plugin aceita a 1ª transação da cadeia ao importar o bloco $PRIMEIRO_TX (Ingress sem Rules permite)" \
+  "0 'Could not resolve AccountRules' e 0 'Invalid block $PRIMEIRO_TX'" \
+  "$(grep -c 'Could not resolve AccountRules contract address' "$LOG_PERM_OBS" 2>/dev/null || true) 'Could not resolve AccountRules'; $(grep -c "Invalid block $PRIMEIRO_TX " <<<"$CONSOLE_OBS" || true) 'Invalid block $PRIMEIRO_TX'" \
+  test "$(grep -c 'Could not resolve AccountRules contract address' "$LOG_PERM_OBS" 2>/dev/null || true)" -eq 0 \
+    -a "$(grep -c "Invalid block $PRIMEIRO_TX " <<<"$CONSOLE_OBS" || true)" -eq 0
+verificar_que T-09e "nenhuma desconexão por quebra de protocolo" \
+  "0 'BREACH_OF_PROTOCOL'" "$(grep -c 'BREACH_OF_PROTOCOL' <<<"$CONSOLE_OBS" || true) linha(s)" \
+  test "$(grep -c 'BREACH_OF_PROTOCOL' <<<"$CONSOLE_OBS" || true)" -eq 0
