@@ -23,6 +23,34 @@ em funcionamento.
    ficam publicados na aba *Actions*, vinculados ao commit exato do código.
 4. **Qualquer pessoa pode reproduzir** a execução na própria máquina com o mesmo comando.
 
+## Este fork: o que muda em relação à bancada original
+
+Este fork ([lmaciel-dev/bancada-plugin-permissionamento](https://github.com/lmaciel-dev/bancada-plugin-permissionamento))
+estende a bancada da [RBBNet](https://github.com/RBBNet/bancada-plugin-permissionamento) em duas
+frentes. A branch `main` é mantida idêntica à original; as extensões ficam em branches próprias.
+
+**1. Matriz de versões do Besu** (branch `matriz-versoes-besu`, base das demais). A original testa
+o plugin numa única versão do Besu; aqui cada execução roda a bancada inteira em cada versão da
+matriz, com um job por versão e um relatório consolidado. Detalhes na seção
+[Versões do Besu (matriz)](#versões-do-besu-matriz). O que isso já revelou: a atualização gradual
+de uma rede 25.x para o Besu 26.6+ exige `--Xbft-legacy-protocol-encoding` nos nós atualizados, sem
+o que a rede para (QBFT) quando metade dos validadores é migrada; requisito que vale para a
+migração real da RBB.
+
+**2. Validação independente das PRs do plugin** (uma branch por PR). Cada branch usa o jar
+compilado a partir do commit da PR, publicado como prerelease no
+[fork do plugin](https://github.com/lmaciel-dev/besu-permissioning-plugin/releases) com o SHA-256
+conferido, e ajusta os testes cujo resultado esperado a PR muda: os itens 🐞, que demonstram
+defeitos da v1.0.0-rc.1, passam a esperar a especificação.
+
+| Branch | PR do plugin | O que a branch muda nos testes | Execução |
+|---|---|---|---|
+| `teste-pr7` | [#7](https://github.com/RBBNet/besu-permissioning-plugin/pull/7) fail-fast de configuração ([#4](https://github.com/RBBNet/besu-permissioning-plugin/issues/4)) | **T-13** (novo): nó com o endereço do Ingress de contas ausente (e, a partir do head `bdcab5a`, igual ao endereço zero) se recusa a subir com erro claro; a rede segue produzindo blocos e o nó se recupera ao corrigir a configuração. Contraparte do 🐞 T-10, que fica fora (roda T-04, T-05 e T-13) | [run 39297343253](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39297343253) (`b630335`): ✅ 25.12.0 e 26.10.0 |
+| `teste-pr6` | [#6](https://github.com/RBBNet/besu-permissioning-plugin/pull/6) nomes das métricas ([#3](https://github.com/RBBNet/besu-permissioning-plugin/issues/3)) | **T-07m** deixa de ser observação 🔎 e verifica os 6 contadores `besu_permissioning_*_total`, sem o prefixo antigo; **T-07n** lê os contadores pelos nomes novos | [run 39478944789](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39478944789): ✅ 25.12.0 e 26.10.0 |
+| `teste-pr5` | [#5](https://github.com/RBBNet/besu-permissioning-plugin/pull/5) consulta direta aos Ingress ([#2](https://github.com/RBBNet/besu-permissioning-plugin/issues/2)) | **T-08** e **T-09** deixam de ser 🐞: o nó entrante é recusado pelo plugin do nó remoto e, cadastrado, conecta e sincroniza; o observer importa o bloco da 1ª transação sem `BREACH_OF_PROTOCOL`. **T-05i** confere que o plugin não resolve mais o endereço do Rules | [run 39597059182](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39597059182): ✅ 25.12.0; ❌ 26.10.0 só no T-08f, pela limitação da [#8](https://github.com/RBBNet/besu-permissioning-plugin/issues/8) (corrigida pela #11) |
+
+As reviews publicadas em cada PR trazem os links das execuções e a análise das falhas.
+
 ## Regra de dados: somente dados sintéticos
 
 Este repositório é público. Por isso:
@@ -167,10 +195,13 @@ Toda diferença deliberada em relação ao roteiro oficial é impressa na execu�
 
 ## Estado
 
-Em construção. Primeira meta: montar automaticamente a rede básica do
+A bancada monta automaticamente a rede do
 [roteiro de rede de teste da RBB](https://github.com/RBBNet/rbb/blob/master/roteiro_criacao_rede_teste.md)
-(validator, boot e writer no Besu 25.5.0, com gen01 → gen02) e verificar a linha de base do
-permissionamento nativo.
+(validator, boot e writer no Besu 25.5.0, com gen01 → gen02), verifica a linha de base do
+permissionamento nativo e testa o plugin da migração do primeiro nó até a rede inteira (T-01 a
+T-12), em cada versão do Besu da matriz. Os defeitos do plugin v1.0.0-rc.1 reproduzidos aqui
+estão abertos como issues no repositório do plugin, e as PRs que os corrigem são validadas nas
+branches descritas em [Este fork](#este-fork-o-que-muda-em-relação-à-bancada-original).
 
 ## Licença
 
