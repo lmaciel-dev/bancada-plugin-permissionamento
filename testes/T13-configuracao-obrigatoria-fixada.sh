@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# T-13: nó com o plugin CORRIGIDO e configuração ERRADA (endereço do Ingress de contas ausente).
+# T-13: nó com o plugin CORRIGIDO e configuração ERRADA (endereço do Ingress de contas ausente e,
+# depois, igual ao endereço zero).
 #
 # Especificação (o que deveria acontecer): diante de configuração obrigatória ausente, o nó deve
 # se recusar a subir, com erro claro — e não operar de forma degradada.
@@ -7,7 +8,7 @@
 # (${ISSUE_PLUGIN_CONFIG_AUSENTE}) e espera o comportamento CORRETO, ao contrário do T-10,
 # que demonstra o defeito do ${PLUGIN_VERSAO} anterior.
 
-fase "Teste T-13: nó com plugin corrigido e endereço do Ingress de contas ausente recusa-se a subir"
+fase "Teste T-13: nó com plugin corrigido e endereço do Ingress de contas ausente ou zero recusa-se a subir"
 ESTADO_ATUAL="E4"
 SN="$TRAB/start-network"
 PORTA_NOVO=${PORTA_NOVO:-20004}
@@ -46,6 +47,27 @@ passo "A rede continua produzindo blocos apesar do nó mal configurado"
 BN1=$(bloco_atual "$PORTA_VALIDATOR"); sleep 15; BN2=$(bloco_atual "$PORTA_VALIDATOR")
 verificar_que T-13d "validator segue produzindo blocos" \
   "bloco avançou: $BN1 → $BN2" "$BN1 → $BN2" test "$BN2" -gt "$BN1"
+
+passo "Reconfigurar o nó 'novo' com o endereço ZERO no Ingress de contas"
+cat > "$SN/docker-compose.t13.yml" <<'EOF'
+services:
+  novo:
+    environment:
+      BESU_PERMISSIONS_ACCOUNTS_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000"
+EOF
+cp "$SN/docker-compose.t13.yml" "$EXEC_DIR/docker-compose.t13-endereco-zero.yml"
+sed 's/^/    │ /' "$SN/docker-compose.t13.yml"
+em "$SN" executar "parar nó novo" dc_t13 stop novo
+em "$SN" executar "subir nó novo com o endereço zero" dc_t13 up -d novo
+sobe=não; esperar_ate "RPC do nó novo (não deve responder)" 60 responde "$PORTA_NOVO" && sobe=sim
+CONSOLE=$(cd "$SN" && docker compose logs --since 2m novo 2>/dev/null)
+info "linhas do plugin no console do nó novo:"
+grep -E "invalid configuration|zero address|Error registering plugin" <<<"$CONSOLE" | head -4 | cut -c1-240 | sed 's/^/    │ /'
+verificar T-13f "com o endereço zero no Ingress de contas, o nó NÃO sobe (RPC não responde)" "não" "$sobe"
+verificar_que T-13g "plugin recusa o endereço zero com mensagem explícita" \
+  "≥ 1 linha 'BESU_PERMISSIONS_ACCOUNTS_CONTRACT_ADDRESS must not be the zero address'" \
+  "$(grep -c 'BESU_PERMISSIONS_ACCOUNTS_CONTRACT_ADDRESS must not be the zero address' <<<"$CONSOLE" || true) linha(s)" \
+  test "$(grep -c 'BESU_PERMISSIONS_ACCOUNTS_CONTRACT_ADDRESS must not be the zero address' <<<"$CONSOLE" || true)" -ge 1
 
 passo "Restaurar a configuração correta e verificar a recuperação"
 em "$SN" executar "parar nó novo" dc_t13 stop novo
