@@ -67,9 +67,7 @@ das execuções citadas nas reviews; quando a PR muda, a branch ganha um commit 
 | `teste-pr6` | [#6](https://github.com/RBBNet/besu-permissioning-plugin/pull/6) nomes das métricas ([#3](https://github.com/RBBNet/besu-permissioning-plugin/issues/3)) | **T-07m** deixa de ser observação 🔎 e verifica os 6 contadores `besu_permissioning_*_total`, sem o prefixo antigo; **T-07n** lê os contadores pelos nomes novos | [run 39478944789](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39478944789) (`0be35d4`): ✅ 25.12.0 e 26.10.0 | mudanças pedidas: rebase sobre `develop` |
 | `teste-pr5` | [#5](https://github.com/RBBNet/besu-permissioning-plugin/pull/5) consulta direta aos Ingress ([#2](https://github.com/RBBNet/besu-permissioning-plugin/issues/2)) | **T-08** e **T-09** deixam de ser 🐞: o nó entrante é recusado pelo plugin do nó remoto e, cadastrado, conecta e sincroniza; o observer importa o bloco da 1ª transação sem `BREACH_OF_PROTOCOL`. **T-05i** confere que o plugin não resolve mais o endereço do Rules | [run 39597059182](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39597059182) (`dba7f73`): ✅ 25.12.0; ❌ 26.10.0 só no T-08f, pela limitação da [#8](https://github.com/RBBNet/besu-permissioning-plugin/issues/8) (corrigida pela #11) | mudanças pedidas: rebase sobre `develop` (conflito com a #11) |
 
-A branch `teste-fix-2660131` é a validação de uma versão anterior da correção da #4, substituída
-por `teste-pr7`. As reviews publicadas em cada PR trazem os links das execuções e a análise das
-falhas.
+As reviews publicadas em cada PR trazem os links das execuções e a análise das falhas.
 
 ## Regra de dados: somente dados sintéticos
 
