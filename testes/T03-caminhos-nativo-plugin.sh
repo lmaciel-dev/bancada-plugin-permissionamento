@@ -15,7 +15,7 @@ B_E2=$(bloco_atual "$PORTA_VALIDATOR")
 info "NodeIngress com regras a partir do bloco $BN; AccountIngress a partir do bloco $BC"
 
 caso() {  # caso <id> <bloco> <descrição> <esperado: nativo_no nativo_tx plugin_no plugin_tx>
-  local R; R=$(node "$RAIZ/ferramentas/ingress.js" caminhos "http://localhost:$PORTA_VALIDATOR" "$2" "$V" "$B")
+  local R; R=$(node "$RAIZ/ferramentas/ingress.js" caminhos "http://127.0.0.1:$PORTA_VALIDATOR" "$2" "$V" "$B")
   echo "$R" >> "$EXEC_DIR/caminhos.jsonl"
   verificar "$1" "bloco $2 — $3 (nativo nó/tx | plugin nó/tx)" "$4" \
     "$(jq -r '"\(.nativo_no)/\(.nativo_tx) | \(.plugin_no)/\(.plugin_tx)"' <<<"$R")" "$R"

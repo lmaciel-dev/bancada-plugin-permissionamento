@@ -17,7 +17,7 @@ NODE_INGRESS_CONTRACT_ADDRESS=0x0000000000000000000000000000000000009999
 ACCOUNT_INGRESS_CONTRACT_ADDRESS=0x0000000000000000000000000000000000008888
 BESU_NODE_PERM_ACCOUNT=${CONTA_ADMIN_ENDERECO#0x}
 BESU_NODE_PERM_KEY=${CONTA_ADMIN_CHAVE#0x}
-BESU_NODE_PERM_ENDPOINT=http://localhost:${PORTA_VALIDATOR}
+BESU_NODE_PERM_ENDPOINT=http://127.0.0.1:${PORTA_VALIDATOR}
 CHAIN_ID=648629
 INITIAL_ALLOWLISTED_NODES=enode://$(pub boot)|0|0x000000000000|boot|BANCADA,enode://$(pub validator)|1|0x000000000000|validator|BANCADA,enode://$(pub writer)|2|0x000000000000|writer|BANCADA
 EOF
@@ -40,15 +40,15 @@ fato gen01.account_rules "$GEN01_ACCOUNT_RULES"
 # (ethers v6: await setContractAddress() espera o envio, não a mineração) e termina com a última
 # transação ainda pendente. Por isso esperamos a mineração antes de verificar.
 aponta_para() {  # aponta_para <campo: regras_nos|regras_contas> <endereço>
-  [ "$(minusculo "$(node "$RAIZ/ferramentas/ingress.js" regras "http://localhost:$PORTA_VALIDATOR" | jq -r ".$1")")" = "$(minusculo "$2")" ]
+  [ "$(minusculo "$(node "$RAIZ/ferramentas/ingress.js" regras "http://127.0.0.1:$PORTA_VALIDATOR" | jq -r ".$1")")" = "$(minusculo "$2")" ]
 }
 t0=$SECONDS
 esperar_ate "AccountIngress apontar para o AccountRules (última transação do deploy)" 30 aponta_para regras_contas "$GEN01_ACCOUNT_RULES"
 fato gen01.espera_ultima_tx_s "$((SECONDS - t0))"
-R=$(node "$RAIZ/ferramentas/ingress.js" regras "http://localhost:$PORTA_VALIDATOR")
+R=$(node "$RAIZ/ferramentas/ingress.js" regras "http://127.0.0.1:$PORTA_VALIDATOR")
 verificar E1-01 "NodeIngress aponta para o NodeRules do gen01" "$(minusculo "$GEN01_NODE_RULES")" "$(minusculo "$(jq -r .regras_nos <<<"$R")")"
 verificar E1-02 "AccountIngress aponta para o AccountRules do gen01" "$(minusculo "$GEN01_ACCOUNT_RULES")" "$(minusculo "$(jq -r .regras_contas <<<"$R")")"
-L=$(node "$RAIZ/ferramentas/ingress.js" localizar "http://localhost:$PORTA_VALIDATOR" "$B_ANTES_GEN01" "$(bloco_atual "$PORTA_VALIDATOR")")
+L=$(node "$RAIZ/ferramentas/ingress.js" localizar "http://127.0.0.1:$PORTA_VALIDATOR" "$B_ANTES_GEN01" "$(bloco_atual "$PORTA_VALIDATOR")")
 fato bloco.primeiro_com_regras_nos "$(jq -r .primeiro_bloco_regras_nos <<<"$L")"
 fato bloco.primeiro_com_regras_contas "$(jq -r .primeiro_bloco_regras_contas <<<"$L")"
 

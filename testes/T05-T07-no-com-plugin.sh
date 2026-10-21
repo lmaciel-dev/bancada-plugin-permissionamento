@@ -94,7 +94,7 @@ verificar T-05j "após a migração, o permissionamento do nó novo permitiu a c
   "$(perm_depois | grep -c "Permitted enode://$K_NOVO.*-> enode://$K_BOOT\|Permitted enode://$K_BOOT.*-> enode://$K_NOVO" | grep -q '^[1-9]' && echo sim || echo não)"
 
 passo "T-06: conta permitida (GLOBAL_ADMIN da Org 1) envia transação pelo nó com plugin"
-R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_NOVO}" "$CONTA_ADMIN_CHAVE")
+R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:${PORTA_NOVO}" "$CONTA_ADMIN_CHAVE")
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 verificar T-06 "transação de conta permitida, enviada pelo nó com plugin" "MINERADA, status 1" \
   "$(jq -r .resumo <<<"$R")" "$R"
@@ -107,14 +107,14 @@ if [ -n "$HASH" ]; then
 fi
 
 passo "T-07: conta nunca cadastrada envia transação pelo nó com plugin"
-R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_NOVO}" aleatoria)
+R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:${PORTA_NOVO}" aleatoria)
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 verificar T-07 "transação de conta não cadastrada, enviada pelo nó com plugin — mesma recusa do nativo (T-02)" \
   'RECUSADA: -32007 Sender account not authorized to send transactions' \
   "$(jq -r .resumo <<<"$R")" "$R"
 
 passo "Métricas do plugin (o release v1.0.0-rc.1 documenta besu_permissioning_transactions_total_checked etc.)"
-METRICAS=$(curl -s -m 10 "localhost:${PORTA_METRICAS_NOVO}/metrics" | grep -i "permissioning" | grep -v '^#')
+METRICAS=$(curl -s -m 10 "127.0.0.1:${PORTA_METRICAS_NOVO}/metrics" | grep -i "permissioning" | grep -v '^#')
 sed 's/^/    │ /' <<<"$METRICAS" | head -8
 NOMES=$(cut -d'{' -f1 <<<"$METRICAS" | cut -d' ' -f1 | sort -u | tr '\n' ' ')
 observar T-07m "nomes das métricas de permissionamento" \

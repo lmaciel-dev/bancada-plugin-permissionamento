@@ -102,7 +102,7 @@ b1=$(bloco_atual "$PORTA_VALIDATOR"); sleep 10; b2=$(bloco_atual "$PORTA_VALIDAT
 verificar_que E0-03 "validator produz blocos (QBFT, período de 4 s)" "avanço ≥ 2 blocos em 10 s" "$b1 → $b2" \
   test $((b2 - b1)) -ge 2
 fato rede.hash_genesis "$(rpc "$PORTA_VALIDATOR" eth_getBlockByNumber '["0x0",false]' | jq -r .result.hash)"
-R=$(node "$RAIZ/ferramentas/ingress.js" regras "http://localhost:$PORTA_VALIDATOR")
+R=$(node "$RAIZ/ferramentas/ingress.js" regras "http://127.0.0.1:$PORTA_VALIDATOR")
 verificar E0-04 "Ingress sem Rules apontado (nós e contas)" \
   "0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000" \
   "$(jq -r '"\(.regras_nos) \(.regras_contas)"' <<<"$R")"

@@ -8,7 +8,7 @@ SN="$TRAB/start-network"
 G2="$TRAB/Permissionamento/gen02"
 SP="$TRAB/scripts-permissionamento"
 source "$RAIZ/lib/contas-teste.env"
-RPC_V="http://localhost:${PORTA_VALIDATOR}"
+RPC_V="http://127.0.0.1:${PORTA_VALIDATOR}"
 
 passo "Roteiro 4.5: .env e parameters-toy.json do gen02"
 cat > "$G2/.env" <<EOF

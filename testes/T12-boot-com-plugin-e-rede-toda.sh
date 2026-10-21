@@ -108,7 +108,7 @@ for n in $(cd "$SN" && docker compose ps --services --status running); do
 done
 fato t12.versoes_dos_nos_em_execucao "$VERSOES"
 verificar T-12i "nenhum nó em execução fora do Besu ${BESU_VERSAO_PLUGIN} (rede inteira no plugin)" "0" "$nativos" "{\"versoes\":\"$VERSOES\"}"
-R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_WRITER}" "$CONTA_ADMIN_CHAVE")
+R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:${PORTA_WRITER}" "$CONTA_ADMIN_CHAVE")
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 verificar T-12j "rede inteira no plugin: transação de conta permitida, pelo writer" "MINERADA, status 1" \
   "$(jq -r .resumo <<<"$R")" "$R"
@@ -116,7 +116,7 @@ HASH=$(jq -r '.hash // empty' <<<"$R")
 [ -n "$HASH" ] && { esperar_ate "candidato importar o bloco da transação" 30 tem_recibo "$PORTA_CAND" "$HASH" || true; }
 [ -n "$HASH" ] && verificar T-12k "candidato (plugin) importou o bloco com a transação" "status 0x1" \
   "status $(rpc "$PORTA_CAND" eth_getTransactionReceipt "[\"$HASH\"]" | jq -r '.result.status // "sem recibo"')"
-R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_WRITER}" aleatoria)
+R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:${PORTA_WRITER}" aleatoria)
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 verificar T-12l "rede inteira no plugin: transação de conta não cadastrada, pelo writer" \
   "RECUSADA: -32007 Sender account not authorized to send transactions" \

@@ -48,14 +48,14 @@ verificar_que T-10b "plugin registra o problema no log (ERROR/WARN de configura�
 esperar_ate "nó novo reconectar e acompanhar a cadeia (antes de qualquer transação nova)" 180 acompanha "$PORTA_VALIDATOR" "$PORTA_NOVO" || true
 
 passo "Conta PERMITIDA envia transação pelo nó mal configurado"
-R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_NOVO}" "$CONTA_ADMIN_CHAVE")
+R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:${PORTA_NOVO}" "$CONTA_ADMIN_CHAVE")
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 reproduzir_defeito "$REF_DEFEITO" T-10c "transação de conta PERMITIDA é recusada pelo nó mal configurado" \
   "RECUSADA: -32007 Sender account not authorized to send transactions" \
   "$(jq -r .resumo <<<"$R")" "$R"
 
 passo "Conta PERMITIDA envia transação pelo writer (nativo); o bloco com ela chega ao nó mal configurado"
-R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_WRITER}" "$CONTA_ADMIN_CHAVE")
+R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:${PORTA_WRITER}" "$CONTA_ADMIN_CHAVE")
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 BTX=$(jq -r '.bloco // empty' <<<"$R")
 verificar T-10d "transação de conta permitida, pelo writer (nativo), minerada normalmente" "MINERADA, status 1" \

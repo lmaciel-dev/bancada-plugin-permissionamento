@@ -118,7 +118,7 @@ estado() {
 # ---------------------------------------------------------------- rede
 rpc() {  # rpc <porta> <método> [params-json]
   curl -s -m 10 -X POST -H 'content-type: application/json' \
-    --data "{\"jsonrpc\":\"2.0\",\"method\":\"$2\",\"params\":${3:-[]},\"id\":1}" "localhost:$1"
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"$2\",\"params\":${3:-[]},\"id\":1}" "127.0.0.1:$1"
 }
 bloco_atual() { local r; r=$(rpc "$1" eth_blockNumber | jq -r '.result // empty' 2>/dev/null); [ -n "$r" ] && echo $((r)); }
 pares()       { local r; r=$(rpc "$1" net_peerCount   | jq -r '.result // empty' 2>/dev/null); [ -n "$r" ] && echo $((r)); }

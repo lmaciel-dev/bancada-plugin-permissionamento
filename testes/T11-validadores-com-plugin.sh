@@ -93,17 +93,17 @@ EOF
   verificar "T-11.$i-a" "versão do Besu no validador '$v'" "besu/v${BESU_CLIENTE_PLUGIN}" "$(rpc "$p" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
   esperar_ate "$v sincronizar" 180 acompanha "$PORTA_BOOT" "$p" || true
   local bm; bm=$(bloco_atual "$PORTA_BOOT")
-  esperar_ate "rede produzir 3 blocos após a migração" 90 bash -c "b=\$(curl -s -X POST -H 'content-type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' localhost:$PORTA_BOOT | jq -r .result); [ \$((b)) -ge $((bm + 3)) ]" || true
+  esperar_ate "rede produzir 3 blocos após a migração" 90 bash -c "b=\$(curl -s -X POST -H 'content-type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' 127.0.0.1:$PORTA_BOOT | jq -r .result); [ \$((b)) -ge $((bm + 3)) ]" || true
   verificar_que "T-11.$i-b" "rede segue produzindo blocos com $i validador(es) no plugin" "≥ 3 blocos novos" \
     "$bm → $(bloco_atual "$PORTA_BOOT")" test "$(bloco_atual "$PORTA_BOOT")" -ge $((bm + 3))
   esperar_ate "'$v' (plugin) propor um bloco" 120 propos_depois_de "$(endereco_de "$v")" "$bm" || true
   verificar_que "T-11.$i-c" "validador '$v' (plugin) volta a propor blocos" "último bloco proposto > $bm" \
     "último bloco proposto: $(ultimo_proposto "$(endereco_de "$v")")" propos_depois_de "$(endereco_de "$v")" "$bm"
-  local R; R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:$p" "$CONTA_ADMIN_CHAVE")
+  local R; R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:$p" "$CONTA_ADMIN_CHAVE")
   echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
   verificar "T-11.$i-d" "transação de conta permitida enviada ao validador '$v' (plugin)" "MINERADA, status 1" \
     "$(jq -r .resumo <<<"$R")" "$R"
-  R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:$p" aleatoria)
+  R=$(node "$RAIZ/ferramentas/tx.js" "http://127.0.0.1:$p" aleatoria)
   echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
   verificar "T-11.$i-e" "transação de conta não cadastrada enviada ao validador '$v' (plugin)" \
     "RECUSADA: -32007 Sender account not authorized to send transactions" \

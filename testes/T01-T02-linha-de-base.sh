@@ -4,7 +4,7 @@
 
 fase "Testes T-01 e T-02: linha de base do permissionamento nativo de contas (estado ${ESTADO_ATUAL})"
 source "$RAIZ/lib/contas-teste.env"
-RPC_W="http://localhost:${PORTA_WRITER}"
+RPC_W="http://127.0.0.1:${PORTA_WRITER}"
 
 passo "T-01: conta permitida (GLOBAL_ADMIN da Org 1) envia transação pelo writer"
 R=$(node "$RAIZ/ferramentas/tx.js" "$RPC_W" "$CONTA_ADMIN_CHAVE")

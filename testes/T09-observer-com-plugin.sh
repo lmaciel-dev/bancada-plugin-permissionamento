@@ -38,7 +38,7 @@ fato t09.primeiro_bloco_com_transacoes "${PRIMEIRO_TX:-não encontrado}"
 [ -n "$PRIMEIRO_TX" ] || abortar "não achei o primeiro bloco com transações"
 TX0=$(rpc "$PORTA_VALIDATOR" eth_getBlockByNumber "[\"$(printf '0x%x' "$PRIMEIRO_TX")\",true]" | jq -c '.result.transactions[0] | {hash, from, to}')
 fato t09.primeira_transacao "$TX0"
-R=$(node "$RAIZ/ferramentas/ingress.js" regras "http://localhost:$PORTA_VALIDATOR" $((PRIMEIRO_TX - 1)))
+R=$(node "$RAIZ/ferramentas/ingress.js" regras "http://127.0.0.1:$PORTA_VALIDATOR" $((PRIMEIRO_TX - 1)))
 fato t09.regras_no_bloco_anterior "$R"
 
 passo "Preparar o observador: Besu ${BESU_VERSAO_PLUGIN} + plugin, Forest, discovery LIGADO, bootnode = boot"
