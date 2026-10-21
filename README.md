@@ -1,5 +1,13 @@
 # Bancada de testes do plugin de permissionamento da RBB
 
+> **Este é um fork, e ele difere da bancada original.** O repositório oficial é
+> [RBBNet/bancada-plugin-permissionamento](https://github.com/RBBNet/bancada-plugin-permissionamento).
+> Este fork é mantido por [@lmaciel-dev](https://github.com/lmaciel-dev) para validar de forma
+> independente o plugin e as PRs que o corrigem, e acrescenta à original uma matriz de versões do
+> Besu, ajustes de robustez e branches de validação de PRs (ver
+> [Este fork](#este-fork-o-que-muda-em-relação-à-bancada-original)). Resultados obtidos aqui não são
+> execuções oficiais da RBB.
+
 Testes automatizados, reproduzíveis e verificáveis por terceiros do
 [`besu-permissioning-plugin`](https://github.com/RBBNet/besu-permissioning-plugin) numa rede
 de teste montada no padrão da Rede Blockchain Brasil (RBB).
@@ -26,30 +34,42 @@ em funcionamento.
 ## Este fork: o que muda em relação à bancada original
 
 Este fork ([lmaciel-dev/bancada-plugin-permissionamento](https://github.com/lmaciel-dev/bancada-plugin-permissionamento))
-estende a bancada da [RBBNet](https://github.com/RBBNet/bancada-plugin-permissionamento) em duas
-frentes. A branch `main` é mantida idêntica à original; as extensões ficam em branches próprias.
+parte da bancada da [RBBNet](https://github.com/RBBNet/bancada-plugin-permissionamento) no commit
+[`f2de944`](https://github.com/RBBNet/bancada-plugin-permissionamento/commit/f2de944) e a estende.
+A branch `main` deste fork reúne todas as extensões de uso geral; o que só faz sentido para uma PR
+específica do plugin fica numa branch própria. Enquanto não forem incorporadas à original, as
+extensões existem só aqui.
 
-**1. Matriz de versões do Besu** (branch `matriz-versoes-besu`, base das demais). A original testa
-o plugin numa única versão do Besu; aqui cada execução roda a bancada inteira em cada versão da
-matriz, com um job por versão e um relatório consolidado. Detalhes na seção
-[Versões do Besu (matriz)](#versões-do-besu-matriz). O que isso já revelou: a atualização gradual
-de uma rede 25.x para o Besu 26.6+ exige `--Xbft-legacy-protocol-encoding` nos nós atualizados, sem
-o que a rede para (QBFT) quando metade dos validadores é migrada; requisito que vale para a
-migração real da RBB.
+**1. Matriz de versões do Besu.** A original testa o plugin numa única versão do Besu; aqui cada
+execução roda a bancada inteira em cada versão da matriz, com um job por versão e um relatório
+consolidado. Detalhes na seção [Versões do Besu (matriz)](#versões-do-besu-matriz). O que isso já
+revelou: a atualização gradual de uma rede 25.x para o Besu 26.6+ exige
+`--Xbft-legacy-protocol-encoding` nos nós atualizados, sem o que a rede para (QBFT) quando metade
+dos validadores é migrada; requisito que vale para a migração real da RBB.
 
-**2. Validação independente das PRs do plugin** (uma branch por PR). Cada branch usa o jar
-compilado a partir do commit da PR, publicado como prerelease no
+**2. Robustez.** As chamadas RPC e de métricas usam `127.0.0.1` em vez de `localhost`. Em máquinas
+onde `localhost` resolve primeiro para IPv6, cada chamada esperava a queda para IPv4 e estourava o
+timeout de ~5 s do ethers na fase 03, abortando execuções locais de forma intermitente.
+
+**3. Disparo por push.** Em forks o GitHub desabilita o disparo manual por padrão; aqui a bancada roda
+também a cada push (ver [Como executar](#como-executar)).
+
+**4. Validação independente das PRs do plugin** (uma branch por PR, a partir da matriz). Cada branch
+usa o jar compilado a partir do commit da PR, publicado como prerelease no
 [fork do plugin](https://github.com/lmaciel-dev/besu-permissioning-plugin/releases) com o SHA-256
 conferido, e ajusta os testes cujo resultado esperado a PR muda: os itens 🐞, que demonstram
-defeitos da v1.0.0-rc.1, passam a esperar a especificação.
+defeitos da v1.0.0-rc.1, passam a esperar a especificação. As branches ficam congeladas no commit
+das execuções citadas nas reviews; quando a PR muda, a branch ganha um commit novo e uma execução nova.
 
-| Branch | PR do plugin | O que a branch muda nos testes | Execução |
-|---|---|---|---|
-| `teste-pr7` | [#7](https://github.com/RBBNet/besu-permissioning-plugin/pull/7) fail-fast de configuração ([#4](https://github.com/RBBNet/besu-permissioning-plugin/issues/4)) | **T-13** (novo): nó com o endereço do Ingress de contas ausente (e, a partir do head `bdcab5a`, igual ao endereço zero) se recusa a subir com erro claro; a rede segue produzindo blocos e o nó se recupera ao corrigir a configuração. Contraparte do 🐞 T-10, que fica fora (roda T-04, T-05 e T-13) | [run 39297343253](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39297343253) (`b630335`): ✅ 25.12.0 e 26.10.0 |
-| `teste-pr6` | [#6](https://github.com/RBBNet/besu-permissioning-plugin/pull/6) nomes das métricas ([#3](https://github.com/RBBNet/besu-permissioning-plugin/issues/3)) | **T-07m** deixa de ser observação 🔎 e verifica os 6 contadores `besu_permissioning_*_total`, sem o prefixo antigo; **T-07n** lê os contadores pelos nomes novos | [run 39478944789](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39478944789): ✅ 25.12.0 e 26.10.0 |
-| `teste-pr5` | [#5](https://github.com/RBBNet/besu-permissioning-plugin/pull/5) consulta direta aos Ingress ([#2](https://github.com/RBBNet/besu-permissioning-plugin/issues/2)) | **T-08** e **T-09** deixam de ser 🐞: o nó entrante é recusado pelo plugin do nó remoto e, cadastrado, conecta e sincroniza; o observer importa o bloco da 1ª transação sem `BREACH_OF_PROTOCOL`. **T-05i** confere que o plugin não resolve mais o endereço do Rules | [run 39597059182](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39597059182): ✅ 25.12.0; ❌ 26.10.0 só no T-08f, pela limitação da [#8](https://github.com/RBBNet/besu-permissioning-plugin/issues/8) (corrigida pela #11) |
+| Branch | PR do plugin | O que a branch muda nos testes | Última execução | Situação da PR (21/10/2026) |
+|---|---|---|---|---|
+| `teste-pr7` | [#7](https://github.com/RBBNet/besu-permissioning-plugin/pull/7) fail-fast de configuração ([#4](https://github.com/RBBNet/besu-permissioning-plugin/issues/4)) | **T-13** (novo): nó com o endereço do Ingress de contas ausente ou igual ao endereço zero se recusa a subir com erro claro; a rede segue produzindo blocos e o nó se recupera ao corrigir a configuração. Contraparte do 🐞 T-10, que fica fora (roda T-04, T-05 e T-13) | [run 39605869797](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39605869797) (`bdcab5a`): ✅ 25.12.0 e 26.10.0 | aprovada, aguardando merge |
+| `teste-pr6` | [#6](https://github.com/RBBNet/besu-permissioning-plugin/pull/6) nomes das métricas ([#3](https://github.com/RBBNet/besu-permissioning-plugin/issues/3)) | **T-07m** deixa de ser observação 🔎 e verifica os 6 contadores `besu_permissioning_*_total`, sem o prefixo antigo; **T-07n** lê os contadores pelos nomes novos | [run 39478944789](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39478944789) (`0be35d4`): ✅ 25.12.0 e 26.10.0 | mudanças pedidas: rebase sobre `develop` |
+| `teste-pr5` | [#5](https://github.com/RBBNet/besu-permissioning-plugin/pull/5) consulta direta aos Ingress ([#2](https://github.com/RBBNet/besu-permissioning-plugin/issues/2)) | **T-08** e **T-09** deixam de ser 🐞: o nó entrante é recusado pelo plugin do nó remoto e, cadastrado, conecta e sincroniza; o observer importa o bloco da 1ª transação sem `BREACH_OF_PROTOCOL`. **T-05i** confere que o plugin não resolve mais o endereço do Rules | [run 39597059182](https://github.com/lmaciel-dev/bancada-plugin-permissionamento/actions/runs/39597059182) (`dba7f73`): ✅ 25.12.0; ❌ 26.10.0 só no T-08f, pela limitação da [#8](https://github.com/RBBNet/besu-permissioning-plugin/issues/8) (corrigida pela #11) | mudanças pedidas: rebase sobre `develop` (conflito com a #11) |
 
-As reviews publicadas em cada PR trazem os links das execuções e a análise das falhas.
+A branch `teste-fix-2660131` é a validação de uma versão anterior da correção da #4, substituída
+por `teste-pr7`. As reviews publicadas em cada PR trazem os links das execuções e a análise das
+falhas.
 
 ## Regra de dados: somente dados sintéticos
 
